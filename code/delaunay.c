@@ -56,10 +56,10 @@ void	Delaunay( void )
 	vertexT **vertexp = NULL;
 	facetT *neighbor, **neighborp;
 	int vid = 0;
-	//tFace  face;
 
-	double pt4;
+	double pt4 = 0;
 	tTetra tetra;
+	tsFace face;
 
 	//count number of points
 	ptr_v = vertices;
@@ -72,11 +72,11 @@ void	Delaunay( void )
 	pt = (coordT*)calloc(vsize * 4, sizeof(coordT)); //each point will have four coord
 	all_v = (tVertex*)calloc(vsize, sizeof(tVertex));
 	assert(pt && all_v);
-
+	
 	//copy points
 	ptr_v = vertices;
 	do {
-		pt4 = ptr_v->v[0] * ptr_v->v[0] + ptr_v->v[1] * ptr_v->v[1] + ptr_v->v[2] * ptr_v->v[2];
+		pt4 = (ptr_v->v[0] * ptr_v->v[0]) + (ptr_v->v[1] * ptr_v->v[1]) + (ptr_v->v[2] * ptr_v->v[2]);
 		pt[id++] = ptr_v->v[0];
 		pt[id++] = ptr_v->v[1];
 		pt[id++] = ptr_v->v[2];
@@ -111,6 +111,16 @@ void	Delaunay( void )
 			//get the id of the vertex
 			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
 		}
+		
+		face.vertex[0] = tetra->vertex[0];
+		face.vertex[1] = tetra->vertex[1];
+		face.vertex[2] = tetra->vertex[2];
+		if (facet->normal[3] < 0.0 && Volumei(&face, tetra->vertex[3])) {
+			MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
+			MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
+			MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
+			MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
+		}
 
 		//to fill the teta: get vertices of facet and loop through each vertex
 		//use FOREACHvertex_()
@@ -123,22 +133,10 @@ void	Delaunay( void )
 				{
 					//get vertex
 					vertices[vid++] = all_v[qh_pointid(vertex->point)];
-				}	
-				if (facet->normal[3] < 0) {
-					tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-					tetra->face[1] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[3], NULL);
-					tetra->face[2] = MakeFace(tetra->vertex[0], tetra->vertex[2], tetra->vertex[3], NULL);
-					tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
-
 				}
+
 			}
 		}//FOREACHneighbor_
-
-		
-
-		//QHullCreateEdge(tetra->vertex, vertices);
-
-
 	}
 
 	//not used
