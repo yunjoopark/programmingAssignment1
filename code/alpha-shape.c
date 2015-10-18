@@ -20,41 +20,35 @@ extern tTetra tetras;
 /* tetracircumcenter() Find the circumcentre of the tetra */
 /*******************************************/
 
+double pointdist(tVertex v1, tVertex v2) {
+	double pt1[3] = { v1->v[0], v1->v[1], v1->v[2]};
+	double pt2[3] = { v2->v[0], v2->v[1], v2->v[2]};
+
+	return qh_pointdist(pt1, pt2, 3);
+}
+
 double areaTriangle(tTetra tetra) {
 	double area = 0.0;
 	double p, q, r, a, b, c;
 	double e, f, g;
 	double s;
 
-	p = qh_pointdist(tetra->vertex[0], tetra->vertex[1], 4);
-	q = qh_pointdist(tetra->vertex[0], tetra->vertex[2], 4);
-	r = qh_pointdist(tetra->vertex[0], tetra->vertex[3], 4);
-	a = qh_pointdist(tetra->vertex[2], tetra->vertex[3], 4);
-	b = qh_pointdist(tetra->vertex[3], tetra->vertex[1], 4);
-	c = qh_pointdist(tetra->vertex[1], tetra->vertex[2], 4);
+	p = pointdist(tetra->vertex[0], tetra->vertex[1]);
+	q = pointdist(tetra->vertex[0], tetra->vertex[2]);
+	r = pointdist(tetra->vertex[0], tetra->vertex[3]);
+	a = pointdist(tetra->vertex[2], tetra->vertex[3]);
+	b = pointdist(tetra->vertex[3], tetra->vertex[1]);
+	c = pointdist(tetra->vertex[1], tetra->vertex[2]);
 	
 	e = a * p;
 	f = b * q;
 	g = c * r;
-	
-	s = (e + f + g) *0.5;
+	//printf("%f, %f, %f, %f, %f, %f\n", p, q, r, a, b, c);
+	s = (e + f + g) * 0.5;
 	area = sqrt(s * (s - e) * (s - f) * (s - g));
 
 	return area;
 }
-
-void drawCircumsphere(double radius) {
-	tFace f;
-	if (faces == NULL) return;
-	f = faces;
-	
-	const double PI = 3.14159265359;
-	double cir_delta = PI * 2;
-	glVertex3d(radius, radius, 0);
-
-
-}
-
 
 /*-------------------------------------------------------------------*/
 void AlphaShape( unsigned int alpha )
@@ -81,12 +75,12 @@ void AlphaShape( unsigned int alpha )
 	int vid = 0;
 
 	// for delaunay triangulation
-	//double pt4 = 0;
 	tTetra tetra;
 	tsFace face;
 	double volume;
 	double area;
 	double radius;
+	int a = 0;
 
 	//count number of points
 	ptr_v = vertices;
@@ -142,19 +136,27 @@ void AlphaShape( unsigned int alpha )
 		face.vertex[1] = tetra->vertex[1];
 		face.vertex[2] = tetra->vertex[2];
 		
-		volume = Volumei(&face, tetra->vertex[3]);
-		area = areaTriangle(tetra);
-		radius = area / (6 * volume);
-
+		volume = fabs(Volumei(&face, tetra->vertex[3]));
+	
 		if (facet->normal[3] < 0.0 && volume) {
-			tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-			tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
-			tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
-			tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
+			area = areaTriangle(tetra);
+			radius = area / (6 * volume);
+			if (a < 100) {
+
+				printf("%f, %f, %f\n", volume, area, radius);
+				a++;
+			}
+			if (radius < alpha) {
+				tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
+				tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
+				tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
+				tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
+			}
 		}
-		if (radius < alpha) {
+
+		/*if () {
 			DELETE(tetras, tetra);
-		}
+		}*/
 		//to fill the teta: get vertices of facet and loop through each vertex
 		//use FOREACHvertex_()
 		FOREACHneighbor_(facet)
@@ -175,14 +177,6 @@ void AlphaShape( unsigned int alpha )
 		}//FOREACHneighbor_
 	}
 	
-
-	
-
-	//if (diameter > alpha) {
-
-	//}
-
-
 	//not used
 	free(pt);
 	free(all_v);
