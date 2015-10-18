@@ -141,11 +141,6 @@ void AlphaShape( unsigned int alpha )
 		if (facet->normal[3] < 0.0 && volume) {
 			area = areaTriangle(tetra);
 			radius = area / (6 * volume);
-			if (a < 100) {
-
-				printf("%f, %f, %f\n", volume, area, radius);
-				a++;
-			}
 			if (radius < alpha) {
 				tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
 				tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
