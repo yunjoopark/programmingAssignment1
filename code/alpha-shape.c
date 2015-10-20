@@ -16,10 +16,6 @@ extern tEdge edges;
 extern tFace faces;
 extern tTetra tetras;
 
-/*******************************************/
-/* tetracircumcenter() Find the circumcentre of the tetra */
-/*******************************************/
-
 double pointdist(tVertex v1, tVertex v2) {
 	double pt1[3] = { v1->v[0], v1->v[1], v1->v[2]};
 	double pt2[3] = { v2->v[0], v2->v[1], v2->v[2]};
@@ -80,7 +76,10 @@ void AlphaShape( unsigned int alpha )
 	double volume;
 	double area;
 	double radius;
-	int a = 0;
+	double squared_radius;
+
+	//pointT *center;
+	//center = (pointT*)calloc(3, sizeof(double));
 
 	//count number of points
 	ptr_v = vertices;
@@ -137,11 +136,16 @@ void AlphaShape( unsigned int alpha )
 		face.vertex[2] = tetra->vertex[2];
 		
 		volume = fabs(Volumei(&face, tetra->vertex[3]));
-	
+
 		if (facet->normal[3] < 0.0 && volume) {
 			area = areaTriangle(tetra);
 			radius = area / (6 * volume);
-			if (radius < alpha) {
+
+			//center = qh_facetcenter(facet->vertices);
+			//radius = qh_pointdist(tetra->vertex[0]->v, center, 3);
+
+			squared_radius = radius * radius;
+			if (squared_radius <= alpha) {
 				tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
 				tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
 				tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
@@ -149,9 +153,6 @@ void AlphaShape( unsigned int alpha )
 			}
 		}
 
-		/*if () {
-			DELETE(tetras, tetra);
-		}*/
 		//to fill the teta: get vertices of facet and loop through each vertex
 		//use FOREACHvertex_()
 		FOREACHneighbor_(facet)
@@ -159,9 +160,6 @@ void AlphaShape( unsigned int alpha )
 			if (facet < neighbor) {
 				tVertex vertices[4];
 				vid = 0;
-
-//				int a = qh_getdistance(facet, neighbor, alpha, alpha);
-//				printf("%d\n", a);
 
 				FOREACHvertex_(neighbor->vertices)
 				{
