@@ -16,25 +16,31 @@ extern tEdge edges;
 extern tFace faces;
 extern tTetra tetras;
 
-double pointdist(tVertex v1, tVertex v2) {
-	double pt1[3] = { v1->v[0], v1->v[1], v1->v[2]};
-	double pt2[3] = { v2->v[0], v2->v[1], v2->v[2]};
+double pointDist(tVertex v1, tVertex v2) {
+	double pt1[3] = { v1->v[X], v1->v[Y], v1->v[Z]};
+	double pt2[3] = { v2->v[X], v2->v[Y], v2->v[Z]};
 
 	return qh_pointdist(pt1, pt2, 3);
 }
 
+/* 
+	calculate the area of a triangle whose sides are products of the opposite edge of the tetra
+	There is a tetra.
+	Let the length of edges be p, q, r, a, b, c.
+	Triangle efg, e = ap, f = bg, g = cr
+*/
 double areaTriangle(tTetra tetra) {
 	double area = 0.0;
 	double p, q, r, a, b, c;
 	double e, f, g;
 	double s;
 
-	p = pointdist(tetra->vertex[0], tetra->vertex[1]);
-	q = pointdist(tetra->vertex[0], tetra->vertex[2]);
-	r = pointdist(tetra->vertex[0], tetra->vertex[3]);
-	a = pointdist(tetra->vertex[2], tetra->vertex[3]);
-	b = pointdist(tetra->vertex[3], tetra->vertex[1]);
-	c = pointdist(tetra->vertex[1], tetra->vertex[2]);
+	p = pointDist(tetra->vertex[0], tetra->vertex[1]);
+	q = pointDist(tetra->vertex[0], tetra->vertex[2]);
+	r = pointDist(tetra->vertex[0], tetra->vertex[3]);
+	a = pointDist(tetra->vertex[2], tetra->vertex[3]);
+	b = pointDist(tetra->vertex[3], tetra->vertex[1]);
+	c = pointDist(tetra->vertex[1], tetra->vertex[2]);
 	
 	e = a * p;
 	f = b * q;
@@ -77,9 +83,6 @@ void AlphaShape( unsigned int alpha )
 	double area;
 	double radius;
 	double squared_radius;
-
-	//pointT *center;
-	//center = (pointT*)calloc(3, sizeof(double));
 
 	//count number of points
 	ptr_v = vertices;
@@ -138,36 +141,20 @@ void AlphaShape( unsigned int alpha )
 		volume = fabs(Volumei(&face, tetra->vertex[3]));
 
 		if (facet->normal[3] < 0.0 && volume) {
-			area = areaTriangle(tetra);
-			radius = area / (6 * volume);
-
-			//center = qh_facetcenter(facet->vertices);
-			//radius = qh_pointdist(tetra->vertex[0]->v, center, 3);
-
-			squared_radius = radius * radius;
-			if (squared_radius <= alpha) {
-				tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-				tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
-				tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
-				tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
+			area = areaTriangle(tetra);	// same withqh_facetarea(tetra->face);
+			radius = area / (6 * volume);	// same with qh_pointdist(tetra->vertex[0], qh_facetcenter(facet->vertices), 3);
+			//radius = qh_pointdist(tetra->vertex[0], qh_facetcenter(facet->vertices), 3);
+			
+			squared_radius = SQR(radius);
+			if (squared_radius > alpha) {// squared_radius <= alpha
+				DELETE(tetras, tetra);
+				continue;
 			}
+			tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
+			tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
+			tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
+			tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
 		}
-
-		//to fill the teta: get vertices of facet and loop through each vertex
-		//use FOREACHvertex_()
-		FOREACHneighbor_(facet)
-		{
-			if (facet < neighbor) {
-				tVertex vertices[4];
-				vid = 0;
-
-				FOREACHvertex_(neighbor->vertices)
-				{
-					//get vertex
-					vertices[vid++] = all_v[qh_pointid(vertex->point)];
-				}
-			}
-		}//FOREACHneighbor_
 	}
 	
 	//not used

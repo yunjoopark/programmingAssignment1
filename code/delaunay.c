@@ -56,8 +56,7 @@ void	Delaunay( void )
 	vertexT **vertexp = NULL;
 	facetT *neighbor, **neighborp;
 	int vid = 0;
-
-	double pt4 = 0;
+	
 	tTetra tetra;
 	tsFace face;
 
@@ -76,11 +75,10 @@ void	Delaunay( void )
 	//copy points
 	ptr_v = vertices;
 	do {
-		pt4 = (ptr_v->v[0] * ptr_v->v[0]) + (ptr_v->v[1] * ptr_v->v[1]) + (ptr_v->v[2] * ptr_v->v[2]);
 		pt[id++] = ptr_v->v[0];
 		pt[id++] = ptr_v->v[1];
 		pt[id++] = ptr_v->v[2];
-		pt[id++] = pt4;
+		pt[id++] = (ptr_v->v[0] * ptr_v->v[0]) + (ptr_v->v[1] * ptr_v->v[1]) + (ptr_v->v[2] * ptr_v->v[2]);
 		all_v[ptr_v->vnum] = ptr_v;
 		ptr_v = ptr_v->next;
 	} while (ptr_v != vertices);
@@ -115,6 +113,7 @@ void	Delaunay( void )
 		face.vertex[0] = tetra->vertex[0];
 		face.vertex[1] = tetra->vertex[1];
 		face.vertex[2] = tetra->vertex[2];
+
 		if (facet->normal[3] < 0.0 && Volumei(&face, tetra->vertex[3])) {
 			MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
 			MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);

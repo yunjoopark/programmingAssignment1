@@ -13,4 +13,7 @@ extern bool check;
 
 /*-------------------------------------------------------------------*/
 void	Crust( void );
+int isOnConvexHull(tVertex vertex);
+double getAngle(tVertex v1, tVertex v2);
+double innerProduct(tVertex site, tVertex pole, tVertex v);
 
