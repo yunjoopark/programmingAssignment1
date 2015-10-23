@@ -56,7 +56,7 @@ tList MakeNullVoronoiVertexList(void) {
 }
 
 /*
-	get angle between two vertex
+get angle between two vertex
 */
 double getAngle(tVertex v1, tVertex v2) {
 	double pt1[3] = { v1->v[0], v1->v[1], v1->v[2] };
@@ -66,7 +66,7 @@ double getAngle(tVertex v1, tVertex v2) {
 }
 
 /*
-	compute the inner product of the vectors, (n+, n-) 
+compute the inner product of the vectors, (n+, n-)
 */
 double innerProduct(tVertex site, tVertex pole, tVertex v) {
 	double dist1, dist2;
@@ -81,7 +81,7 @@ double innerProduct(tVertex site, tVertex pole, tVertex v) {
 	return result;
 }
 
-int findPoleAntiPole(tVertex vertices, int vsize) {
+void findPoleAntiPole(int vsize) {
 	tVertex site;
 	double *pole_vector;
 	double avg_normal[3] = { 0, };
@@ -95,7 +95,7 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 	double max_dist = 0;
 	int neighbor_size = 0;
 	int i;
-	int count = 1;
+	//int count = 1;
 
 	site = vertices;
 	// for all vertices
@@ -106,7 +106,7 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 			continue;
 		}
 		temp_voronoi_vertexT = (vertexT*)site_voronoi_vertices->p;
-		
+
 		if (!temp_voronoi_vertexT) {	// lies on the CH: compute the average of the outer nomals of the adjacents.
 			pole_vector = (double *)calloc(3, sizeof(double));
 			neighbor_size = 0;
@@ -116,7 +116,7 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 				avg_normal[Y] += neighbor->normal[Y];
 				avg_normal[Z] += neighbor->normal[Z];
 			}
-			
+
 			avg_normal[X] /= neighbor_size;
 			avg_normal[Y] /= neighbor_size;
 			avg_normal[Z] /= neighbor_size;
@@ -142,8 +142,8 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 				}
 				else {
 					pole_voronoi_vertex->ispole = TRUE;
-					pole_voronoi_vertex->vnum = vsize + count;
-					count++;
+					pole_voronoi_vertex->vnum = vsize++;
+
 					ADD(vertices, pole_voronoi_vertex);
 					pole_vector = (double *)calloc(3, sizeof(double));
 					for (i = 0; i < 3; i++) {
@@ -194,8 +194,8 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 			}
 			else {
 				antipole_voronoi_vertex->ispole = TRUE;
-				antipole_voronoi_vertex->vnum = vsize + count;
-				count++;
+				antipole_voronoi_vertex->vnum = vsize++;
+
 				ADD(vertices, antipole_voronoi_vertex);
 			}
 		}
@@ -207,9 +207,7 @@ int findPoleAntiPole(tVertex vertices, int vsize) {
 		antipole_voronoi_vertex = NULL;
 		site = site->next;
 	} while (site != vertices);
-	count -= 1;
-	printf("the number of poles = %d\n", count);
-	return count;
+
 }
 
 
@@ -292,7 +290,7 @@ void	Crust(void)
 	FORALLfacets
 	{
 		if (facet->center == NULL)
-			facet->center = qh_facetcenter(facet->vertices);
+		facet->center = qh_facetcenter(facet->vertices);
 		facetArea = qh_facetarea(facet);
 		FOREACHvertex_(facet->vertices) {
 			//if (facet->upperdelaunay)	continue;
@@ -302,8 +300,8 @@ void	Crust(void)
 			if ((site->vvlist) == NULL) {	// avoid from checking redundantly
 
 				FOREACHneighbor_(vertex) {
-					if ((neighbor->upperdelaunay)) {	
-						 //is_on_convexhull = TRUE;
+					if ((neighbor->upperdelaunay)) {
+						//is_on_convexhull = TRUE;
 					}
 					else {
 						voronoi_vertex = MakeNullVoronoiVertex();
@@ -317,13 +315,13 @@ void	Crust(void)
 
 					}	//else
 				}	//FOREACHneighbor_
-				
+
 			}	// if ((site->vvlist) == NULL)
 		}	//FOREACHvertex_
 	}	//FORALLfacets
 
-	// find a pole
-	findPoleAntiPole(vertices, vsize);
+		// find a pole
+	findPoleAntiPole(vsize);
 	printf("vsize = %d\n", vsize);
 
 	Delaunay();
