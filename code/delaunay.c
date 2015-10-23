@@ -58,6 +58,7 @@ void	Delaunay( void )
 	int vid = 0;
 	
 	tTetra tetra;
+	tsFace temp_face;
 
 	//count number of points
 	ptr_v = vertices;
@@ -110,6 +111,26 @@ void	Delaunay( void )
 			//get the id of the vertex
 			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
 		}
+		temp_face.vertex[0] = tetra->vertex[0];
+		temp_face.vertex[1] = tetra->vertex[1];
+		temp_face.vertex[2] = tetra->vertex[2];
+		
+		if (facet->normal[3] < 0.0 && Volumei(&temp_face, tetra->vertex[3])) {
+			
+			if (!(tetra->vertex[0]->ispole) && !(tetra->vertex[1]->ispole) && !(tetra->vertex[2]->ispole)) {
+				MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
+			}
+			if (!(tetra->vertex[3]->ispole) && !(tetra->vertex[1]->ispole) && !(tetra->vertex[0]->ispole)) {
+				MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
+			}
+			if (!(tetra->vertex[2]->ispole) && !(tetra->vertex[3]->ispole) && !(tetra->vertex[0]->ispole)) {
+				MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
+			}
+			if (!(tetra->vertex[1]->ispole) && !(tetra->vertex[2]->ispole) && !(tetra->vertex[3]->ispole)) {
+				MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
+			}
+		}
+
 	}
 
 	//not used

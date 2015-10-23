@@ -239,10 +239,12 @@ void	Crust(void)
 	facetT *neighbor, **neighborp;
 	int vid = 0;
 
-	// for crust
+	// for original? convex hull
 	tTetra tetra;
-	double facetArea = 0.0;
+	tsFace temp_face;
 
+	// for crust algorithm
+	double facetArea = 0.0;
 	tVertex voronoi_vertex;
 	tVertex site;
 	int vvlnum = 0;
@@ -320,9 +322,8 @@ void	Crust(void)
 		}	//FOREACHvertex_
 	}	//FORALLfacets
 
-		// find a pole
+	// find a pole
 	findPoleAntiPole(vsize);
-	printf("vsize = %d\n", vsize);
 
 	Delaunay();
 

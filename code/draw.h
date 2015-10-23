@@ -352,7 +352,7 @@ void Draw3D(int argc, char ** argv)
 #if OPENGL_ON
 	glutInit( &argc, argv );
 	glutInitDisplayMode( GLUT_RGB|GLUT_DOUBLE|GLUT_DEPTH );
-	glutInitWindowSize( 480, 480);
+	glutInitWindowSize( 300, 300);
 	glutInitWindowPosition( 50, 50 );
 	glutCreateWindow( "shape" );
 
