@@ -132,7 +132,6 @@ void findPoleAntiPole(int vsize) {
 				if (temp_dist > max_dist) {
 					pole_voronoi_vertex = temp_voronoi_vertex;
 					max_dist = temp_dist;
-					pole_voronoi_vertex->ispole = true;
 				}
 			} while (site_voronoi_vertices != site->vvlist);
 
@@ -195,7 +194,6 @@ void findPoleAntiPole(int vsize) {
 			else {
 				antipole_voronoi_vertex->ispole = TRUE;
 				antipole_voronoi_vertex->vnum = vsize++;
-
 				ADD(vertices, antipole_voronoi_vertex);
 			}
 		}
@@ -209,9 +207,6 @@ void findPoleAntiPole(int vsize) {
 	} while (site != vertices);
 
 }
-
-
-
 
 /*-------------------------------------------------------------------*/
 void	Crust(void)
