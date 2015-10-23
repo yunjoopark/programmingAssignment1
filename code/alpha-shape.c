@@ -8,7 +8,6 @@
 #include "qset.h"
 #include "geom.h"
 
-
 /*-------------------------------------------------------------------*/
 //defined in shape.h/.c
 extern tVertex vertices;
@@ -78,11 +77,14 @@ void AlphaShape( unsigned int alpha )
 
 	// for delaunay triangulation
 	tTetra tetra;
-	tsFace face;
-	double volume;
-	double area;
-	double radius;
-	double squared_radius;
+	//tsFace face;
+	//double volume;
+	//double area;
+	//double radius;
+	double squared_radius = 0;
+	double min_squred_radius = 0;
+	int fsize = 0;
+	
 
 	//count number of points
 	ptr_v = vertices;
@@ -111,7 +113,7 @@ void AlphaShape( unsigned int alpha )
 
 	qh_init_A(stdin, stdout, stderr, 0, NULL);
 
-	// qh DELAUNAY= True;     /* 'd'   */
+	 qh DELAUNAY= True;     /* 'd'   */
 	//qh SCALElast= True;    /* 'Qbb' */
 	//qh KEEPcoplanar= True; /* 'Qc', to keep coplanars in 'p' */
 
@@ -120,9 +122,31 @@ void AlphaShape( unsigned int alpha )
 	qh_qhull();
 	qh_check_output();
 
+	fsize = qh num_facets;
+
+	int count = 0;
+	qh_getarea(qh facet_list);
+
 	//loop through all faces
 	FORALLfacets
 	{
+		if (facet->upperdelaunay) continue;
+
+		//get the center of facet
+		if (facet->center == NULL)
+			facet->center = qh_facetcenter(facet->vertices);
+		
+		FOREACHvertex_(facet->vertices)
+		{
+			tVertex v = all_v[qh_pointid(vertex->point)];
+			squared_radius = SQR(v->v[0] - facet->center[0]) + SQR(v->v[1] - facet->center[1]) + SQR(v->v[2] - facet->center[2]);
+			break;
+		}
+		
+		if (squared_radius > min_squred_radius) min_squred_radius = squared_radius;
+
+		if (squared_radius > alpha) continue;
+		
 		tetra = MakeNullTetra();	// make a tetra
 
 		//get vertices of facet
@@ -133,28 +157,8 @@ void AlphaShape( unsigned int alpha )
 			//get the id of the vertex
 			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
 		}
-
-		face.vertex[0] = tetra->vertex[0];
-		face.vertex[1] = tetra->vertex[1];
-		face.vertex[2] = tetra->vertex[2];
+		count++;
 		
-		volume = fabs(Volumei(&face, tetra->vertex[3]));
-
-		if (facet->normal[3] < 0.0 && volume) {
-			area = areaTriangle(tetra);	// same withqh_facetarea(tetra->face);
-			radius = area / (6 * volume);	// same with qh_pointdist(tetra->vertex[0], qh_facetcenter(facet->vertices), 3);
-			//radius = qh_pointdist(tetra->vertex[0], qh_facetcenter(facet->vertices), 3);
-			
-			squared_radius = SQR(radius);
-			if (squared_radius > alpha) {// squared_radius <= alpha
-				DELETE(tetras, tetra);
-				continue;
-			}
-			tetra->face[0] = MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-			tetra->face[1] = MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
-			tetra->face[2] = MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
-			tetra->face[3] = MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
-		}
 	}
 	
 	//not used

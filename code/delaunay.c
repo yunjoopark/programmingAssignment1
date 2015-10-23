@@ -58,7 +58,6 @@ void	Delaunay( void )
 	int vid = 0;
 	
 	tTetra tetra;
-	tsFace face;
 
 	//count number of points
 	ptr_v = vertices;
@@ -87,7 +86,7 @@ void	Delaunay( void )
 
 	qh_init_A(stdin, stdout, stderr, 0, NULL);
 
-	//qh DELAUNAY= True;     /* 'd'   */
+	qh DELAUNAY= True;     /* 'd'   */
 	//qh SCALElast= True;    /* 'Qbb' */
 	//qh KEEPcoplanar= True; /* 'Qc', to keep coplanars in 'p' */
 
@@ -99,6 +98,8 @@ void	Delaunay( void )
 	//loop through all faces
 	FORALLfacets
 	{
+		if (facet->upperdelaunay) continue;
+
 		tetra = MakeNullTetra();	// make a tetra
 
 		//get vertices of facet
@@ -109,33 +110,6 @@ void	Delaunay( void )
 			//get the id of the vertex
 			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
 		}
-		
-		face.vertex[0] = tetra->vertex[0];
-		face.vertex[1] = tetra->vertex[1];
-		face.vertex[2] = tetra->vertex[2];
-
-		if (facet->normal[3] < 0.0 && Volumei(&face, tetra->vertex[3])) {
-			MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-			MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
-			MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
-			MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
-		}
-
-		//to fill the teta: get vertices of facet and loop through each vertex
-		//use FOREACHvertex_()
-		FOREACHneighbor_(facet)
-		{
-			if (facet < neighbor) {
-				tVertex vertices[4];
-				vid = 0;
-				FOREACHvertex_(neighbor->vertices)
-				{
-					//get vertex
-					vertices[vid++] = all_v[qh_pointid(vertex->point)];
-				}
-
-			}
-		}//FOREACHneighbor_
 	}
 
 	//not used
@@ -147,8 +121,6 @@ void	Delaunay( void )
 	//free mem
 	qh_freeqhull(!qh_ALL);
 	qh_memfreeshort(&curlong, &totlong);
-
-
 }
 
 
