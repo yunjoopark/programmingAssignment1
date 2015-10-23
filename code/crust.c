@@ -1,3 +1,4 @@
+#include "delauany.h"
 #include "crust.h"
 #include "shape.h"
 
@@ -11,6 +12,8 @@
 
 #define TRUE 1
 #define FALSE 0
+#define MAX_DIST 10000
+
 /*-------------------------------------------------------------------*/
 //defined in shape.h/.c
 extern tVertex vertices;
@@ -19,6 +22,17 @@ extern tFace faces;
 extern tTetra tetras;
 
 tVertex voronoi_vertices = NULL;
+
+
+tVertex MakeTempVertex(double *vector) {
+	tVertex v;
+	NEW(v, tsVertex);
+	v->v[0] = vector[0];
+	v->v[1] = vector[1];
+	v->v[2] = vector[2];
+	v->vvlist = NULL;
+	v->ispole = false;
+}
 
 tVertex	MakeNullVoronoiVertex(void)
 {
@@ -89,22 +103,22 @@ double innerProduct(tVertex site, tVertex pole, tVertex v) {
 
 	vertexT *vertices, tVertex site
 */
-void findPole(int vsize) {
-	tVertex site;
-	tList site_voronoi_vertices;
-	tVertex voronoi_vertex;
-	tVertex pole_voronoi_vertex;
-	facetT *neighbor, **neighborp;
+void findPoleAntiPole() {
+	tVertex site = NULL;
+	tList site_voronoi_vertices = NULL;
+	tVertex voronoi_vertex = NULL;
+	tVertex pole_voronoi_vertex = NULL;
+	tVertex anti_voronoi_vertex = NULL;
 	vertexT *neighborVertex = NULL;
+	facetT *neighbor, **neighborp;
 
 	int isOnCH = 0;
+	int vid = 0;
 	double temp_norm = 0.0;
 	double vector_norm = 0.0;
 
 	site = vertices;
 	isOnCH = isOnConvexHull(site);
-
-	//printf("is convex hull ? %d\n", isOnCH);
 
 	do {
 		site_voronoi_vertices = site->vvlist;
@@ -112,12 +126,19 @@ void findPole(int vsize) {
 		if (isOnCH) {	// If site s lies on the convex hull
 			// n+ be the aveerage of the outer normals of the adjacent triangles;
 
-			//FOREACHneighbor_(vertices) {	// assign 'neighbor' to each neighbor in vertices->neighbors
-			//	neighbor = (facetT*)vertices->neighbors;
-			//	neighbor->normal;
-
-			//}
-
+			double facet_normal[3];
+			
+			//FOREACHneighbor_(site) {	// assign 'neighbor' to each neighbor in vertices->neighbors
+			//	neighbor = (facetT*)site->neighbors;
+			//	facet_normal[X] += neighbor->normal[X];
+			//	facet_normal[Y] += neighbor->normal[Y];
+			//	facet_normal[Z] += neighbor->normal[Z];
+			//	vid++;
+			////}
+			//facet_normal[X] /= vid;
+			//facet_normal[Y] /= vid;
+			//facet_normal[Z] /= vid;
+			
 		}
 		else {				// If site s does not lie on the cconvex hull,
 			do {			// Find the farthest Voronoi vertex from s.
@@ -131,48 +152,40 @@ void findPole(int vsize) {
 			} while (site_voronoi_vertices != site->vvlist);
 
 			pole_voronoi_vertex->ispole = true;
+			ADD(vertices, pole_voronoi_vertex);
+			//findAntiPole(pole_voronoi_vertex, site);
 		}
-
 		site = site->next;
 	} while (site != vertices);
-
+	ADD(vertices, pole_voronoi_vertex);
 }
 
-void findAntiPole(tVertex site) {
+
+void findAntiPole(tVertex pole, tVertex site) {
 	tList site_voronoi_vertices;
 	tVertex voronoi_vertex;
-	tVertex pole_voronoi_vertex;
 	tVertex antipole_voronoi_vertex;
 	double temp_norm = 0.0;
 	double vector_norm = 0.0;
-	
-	// seek a pole
-	site_voronoi_vertices = site->vvlist;
-	do {
-		pole_voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
-		if (!pole_voronoi_vertex->ispole){
-			site_voronoi_vertices = site_voronoi_vertices->next;
-			continue;
-		}
-		else {
-			break;
-		}
-	} while (site_voronoi_vertices != site->vvlist);
 
 	site_voronoi_vertices = site->vvlist;
+
 	do {
 		voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
-		temp_norm = innerProduct(site, pole_voronoi_vertex, voronoi_vertex);
+		temp_norm = innerProduct(site, pole, voronoi_vertex);
 		if (temp_norm > vector_norm) {
 			antipole_voronoi_vertex = voronoi_vertex;
 			vector_norm = temp_norm;
 		}
 		site_voronoi_vertices = site_voronoi_vertices->next;
 	} while (site_voronoi_vertices != site->vvlist);
+	antipole_voronoi_vertex->ispole = TRUE;
+	ADD(vertices, antipole_voronoi_vertex);
+	
 }
 
 /*-------------------------------------------------------------------*/
-void	Crust( void )
+void	Crust(void)
 {
 	// implement 3d crust alogorithm here
 	// put results (vertices, edges, faces, and tetrahedra)
@@ -197,15 +210,19 @@ void	Crust( void )
 	facetT *neighbor, **neighborp;
 	int vid = 0;
 
-	// for delaunay triangulation and crust
-	tTetra tetra = NULL;
-	tsFace temp_face;
-	double volume;
+	// for crust
+	tTetra tetra;
+	//tsFace temp_face;
+	double facetArea = 0.0;
 
 	tVertex voronoi_vertex;
+	
 	int vvlnum = 0;
 	tList vvl;
 	int i = 0;
+	int is_on_convexhull = 0;
+	tVertex site;
+
 
 	//count number of points
 	ptr_v = vertices;
@@ -218,7 +235,7 @@ void	Crust( void )
 	pt = (coordT*)calloc(vsize * 4, sizeof(coordT)); //each point will have four coord
 	all_v = (tVertex*)calloc(vsize, sizeof(tVertex));
 	assert(pt && all_v);
-	
+
 	//copy points
 	ptr_v = vertices;
 	do {
@@ -244,97 +261,358 @@ void	Crust( void )
 
 	//compute Voronoi centers for all facets
 	//includes upperDelaunay facets if qh.UPPERdelaunay ('Qu')
-	//qh_setvoronoi_all();
-	
+	qh_setvoronoi_all();
 
-	//loop through all faces
 	FORALLfacets
 	{
-		tetra = MakeNullTetra();
-
-		//get vertices of facet
-		//loop through each vertex
-		vid = 0;
-		FOREACHvertex_(facet->vertices)
-		{
-			//get the id of the vertex
-			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
-		}
-
-		// for checking the volume of a face.
-		temp_face.vertex[0] = tetra->vertex[0];
-		temp_face.vertex[1] = tetra->vertex[1];
-		temp_face.vertex[2] = tetra->vertex[2];
-
-		volume = fabs(Volumei(&temp_face, tetra->vertex[3]));
-		/*temp = qh_facetarea(facet);*/
-		if (!volume) {
-			DELETE(tetras, tetra);
-			continue;
-		}
+		if (facet->center == NULL)
+			facet->center = qh_facetcenter(facet->vertices);
 
 		
-		//// for facing-down triangles and abs(volume) > 0 
-		//if (facet->normal[3] < 0.0) {
-		//	printf("%f	%f	   %f	  %f	 %f\n", facet->normal[0], facet->normal[1], facet->normal[2], facet->normal[3], facet->normal[4]);
+		FOREACHvertex_(facet->vertices) {
+			facetArea = qh_facetarea(facet);
+			if (facet->upperdelaunay)	continue;
+			site = all_v[qh_pointid(vertex->point)];
 
-		//	MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
-		//	MakeFace(tetra->vertex[3], tetra->vertex[1], tetra->vertex[0], NULL);
-		//	MakeFace(tetra->vertex[2], tetra->vertex[3], tetra->vertex[0], NULL);
-		//	MakeFace(tetra->vertex[1], tetra->vertex[2], tetra->vertex[3], NULL);
-		
-			voronoi_vertex = MakeNullVoronoiVertex();
+			if ((site->vvlist) == NULL) {	// avoid from checking redundantly
+				int neighbor_size = 0;
+				double avg_normal[3] = { 0, };
 
-			voronoi_vertex->v[X] = qh_facetcenter(facet->vertices)[X];
-			voronoi_vertex->v[Y] = qh_facetcenter(facet->vertices)[Y];
-			voronoi_vertex->v[Z] = qh_facetcenter(facet->vertices)[Z];
-			voronoi_vertex->vnum = vvlnum++;
+				FOREACHneighbor_(vertex) {
+					if ((neighbor->upperdelaunay)) {	// is on convexhull
+						is_on_convexhull = TRUE;
+					}
+					else {
+						voronoi_vertex = MakeNullVoronoiVertex();
+						voronoi_vertex->v[X] = neighbor->center[X];
+						voronoi_vertex->v[Y] = neighbor->center[Y];
+						voronoi_vertex->v[Z] = neighbor->center[Z];
+						voronoi_vertex->vnum = vvlnum++;
+						vvl = MakeNullVoronoiVertexList();
+						vvl->p = (void*)voronoi_vertex;
+						ADD(site->vvlist, vvl);
 
-			vvl = MakeNullVoronoiVertexList();
-			vvl->p = (void*)voronoi_vertex;
+						if (neighbor->toporient) {
+							neighbor_size++;
+							avg_normal[X] += neighbor->normal[X];
+							avg_normal[Y] += neighbor->normal[Y];
+							avg_normal[Z] += neighbor->normal[Z];
+						}
 
-			for (i = 0; i < 4; i++) {
-				tVertex tetra_vertex = tetra->vertex[i];
-				ADD(tetra_vertex->vvlist, vvl);
-			}
-			//findPole(vsize, facet);
+					}	//else
+				}	//FOREACHneighbor_
+				
+				double *pole_vector;
+				double antipole_vector[3] = { 0, };
+				tVertex pole_voronoi_vertex = NULL;
+				tVertex antipole_voronoi_vertex = NULL;
+				tVertex temp_voronoi_vertex = NULL;
+				tList site_voronoi_vertices;
+				double temp_dist = 0;
+				double max_dist = 0;
 
-			
-		
-		FOREACHneighbor_(facet)
-		{
-			if (facet < neighbor) {
-				double facet_normal[3];
-				vid = 0;
-				FOREACHvertex_(neighbor->vertices)
-				{
-					vid++;
-					// get normal
-					facet_normal[X] += facet->normal[X];
-					facet_normal[Y] += facet->normal[Y];
-					facet_normal[Z] += facet->normal[Z];
-
+				if (is_on_convexhull) {
+					pole_vector = (double *)calloc(3, sizeof(double));
+					avg_normal[X] /= neighbor_size;
+					avg_normal[Y] /= neighbor_size;
+					avg_normal[Z] /= neighbor_size;
+					for (i = 0; i < 3; i++) {
+						pole_vector[i] = avg_normal[i];
+					}
 				}
-				facet_normal[X] /= vid;
-				facet_normal[Y] /= vid;
-				facet_normal[Z] /= vid;
+				else {
+					site_voronoi_vertices = site->vvlist;
+					do {			// Find the farthest Voronoi vertex from s.
+						temp_voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
+						temp_dist = pointDist(site, voronoi_vertex);
+						if (temp_dist > max_dist) {
+							pole_voronoi_vertex = voronoi_vertex;
+							max_dist = temp_dist;
+							pole_voronoi_vertex->ispole = true;
+						}
+					} while (site_voronoi_vertices != site->vvlist);
+					if (pole_voronoi_vertex){
+						if (max_dist > MAX_DIST) {
+							pole_voronoi_vertex = NULL;
+						}
+						else {
+							pole_voronoi_vertex->ispole = TRUE;
+							ADD(vertices, pole_voronoi_vertex);
+							pole_vector = (double *)calloc(3, sizeof(double));
+							for (i = 0; i < 3; i++) {
+								pole_vector[i] = pole_voronoi_vertex->v[i];
+							}
+						}
+					}
+					
+				}
 
-			}
-		}//FOREACHneighbor_
+				max_dist = 0;
+				temp_dist = 0;
 
-		
-		
+				// find a antipole
+				site_voronoi_vertices = site->vvlist;
+				assert(pole_vector != NULL);
+
+				if (pole_voronoi_vertex != NULL) {
+					do {
+						voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
+						if (voronoi_vertex->ispole) {
+							continue;
+						}
+						temp_dist = innerProduct(site, pole_voronoi_vertex, voronoi_vertex);
+						if (temp_dist > max_dist) {
+							antipole_voronoi_vertex = voronoi_vertex;
+							max_dist = temp_dist;
+						}
+						site_voronoi_vertices = site_voronoi_vertices->next;
+					} while (site_voronoi_vertices != site->vvlist);
+				}
+				else {	// the site is on CH
+					do {
+						voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
+						double dist1, dist2;
+						tVertex temp_vertex = MakeTempVertex(pole_vector);
+						temp_dist = innerProduct(site, temp_vertex, voronoi_vertex);
+						if (temp_dist > max_dist) {
+							antipole_voronoi_vertex = voronoi_vertex;
+							max_dist = temp_dist;
+						}
+						site_voronoi_vertices = site_voronoi_vertices->next;
+					} while (site_voronoi_vertices != site->vvlist);
+				}
+				if (antipole_voronoi_vertex){
+					if (max_dist > MAX_DIST) {
+						antipole_voronoi_vertex = NULL;
+					}
+					else {
+						antipole_voronoi_vertex->ispole = TRUE;
+						ADD(vertices, antipole_voronoi_vertex);
+					}
+				}
+				
+			}	// if ((site->vvlist) == NULL)
+		}	//FOREACHvertex_
+	}	//FORALLfacets
+				
+				//site = vertices;
+				//do {
+				//	double max_dist = 0;
+				//	double *pole_vector;
+				//	double antipole_vector[3] = { 0, };
+				//	int neighbor_size = 0;
+				//	tVertex pole_voronoi_vertex = NULL;
+				//	tVertex temp_voronoi_vertex = NULL;
+				//	tList site_voronoi_vertices;
+				//	double temp_dist = 0;
+				//	double max_dist = 0;
+
+				//	site_voronoi_vertices = site->vvlist;
+				//	if (site_voronoi_vertices == NULL) {
+				//		site = site->next;
+				//		continue;
+				//	}
+
+				//	if (site->) {	// If site s lies on the convex hull
+				//		// n+ be the aveerage of the outer normals of the adjacent triangles;
 
 
-		//compute Voronoi centers for all facets
-		//includes upperDelaunay facets if qh.UPPERdelaunay ('Qu')
-		//qh_setvoronoi_all();	
-		// qh_ASvoronoi;
+				//		double avg_normal[3] = { 0, };
 
+				//		//FOREACHneighbor_(site) {	// assign 'neighbor' to each neighbor in vertices->neighbors
+				//		//	neighbor = (facetT*)site->neighbors;
+				//		//	facet_normal[X] += neighbor->normal[X];
+				//		//	facet_normal[Y] += neighbor->normal[Y];
+				//		//	facet_normal[Z] += neighbor->normal[Z];
+				//		//	vid++;
+				//		////}
+				//		//facet_normal[X] /= vid;
+				//		//facet_normal[Y] /= vid;
+				//		//facet_normal[Z] /= vid;
+
+				//	}
+				//	else {				// If site s does not lie on the cconvex hull,
+				//		do {			// Find the farthest Voronoi vertex from s.
+				//			temp_voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
+				//			temp_dist = pointDist(site, voronoi_vertex);
+				//			if (temp_dist > max_dist) {
+				//				pole_voronoi_vertex = voronoi_vertex;
+				//				max_dist = temp_dist;
+				//			}
+				//		} while (site_voronoi_vertices != site->vvlist);
+
+				//		pole_voronoi_vertex->ispole = true;
+				//		ADD(vertices, pole_voronoi_vertex);
+				//		pole_vector = (double *)calloc(3, sizeof(double));
+				//		for (i = 0; i < 3; i++) {
+				//			pole_vector[i] = pole_voronoi_vertex->v[i];
+				//		}
+				//	}
+				//	site = site->next;
+				//} while (site != vertices);
+
+
+
+
+	//site = vertices;
+	//do {
+	//	double max_dist = 0;
+	//	double *pole_vector;
+	//	double antipole_vector[3] = { 0, };
+	//	int neighbor_size = 0;
+	//	tVertex pole_voronoi_vertex = NULL;
+	//	tVertex temp_voronoi_vertex = NULL;
+	//	tList site_voronoi_vertices;
+	//	double temp_dist = 0;
+	//	double max_dist = 0;
+
+	//	site_voronoi_vertices = site->vvlist;
+	//	if (site_voronoi_vertices == NULL) {
+	//		site = site->next;
+	//		continue;
+	//	}
+	//	
+	//	if (1) {	// If site s lies on the convex hull
+	//		// n+ be the aveerage of the outer normals of the adjacent triangles;
+
+
+	//		double avg_normal[3] = { 0, };
+
+	//		//FOREACHneighbor_(site) {	// assign 'neighbor' to each neighbor in vertices->neighbors
+	//		//	neighbor = (facetT*)site->neighbors;
+	//		//	facet_normal[X] += neighbor->normal[X];
+	//		//	facet_normal[Y] += neighbor->normal[Y];
+	//		//	facet_normal[Z] += neighbor->normal[Z];
+	//		//	vid++;
+	//		////}
+	//		//facet_normal[X] /= vid;
+	//		//facet_normal[Y] /= vid;
+	//		//facet_normal[Z] /= vid;
+
+	//	}
+	//	else {				// If site s does not lie on the cconvex hull,
+	//		do {			// Find the farthest Voronoi vertex from s.
+	//			temp_voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
+	//			temp_dist = pointDist(site, voronoi_vertex);
+	//			if (temp_dist > max_dist) {
+	//				pole_voronoi_vertex = voronoi_vertex;
+	//				max_dist = temp_dist;
+	//			}
+	//		} while (site_voronoi_vertices != site->vvlist);
+
+	//		pole_voronoi_vertex->ispole = true;
+	//		ADD(vertices, pole_voronoi_vertex);
+	//		pole_vector = (double *)calloc(3, sizeof(double));
+	//		for (i = 0; i < 3; i++) {
+	//			pole_vector[i] = pole_voronoi_vertex->v[i];
+	//		}
+	//	}
+	//	site = site->next;
+	//} while (site != vertices);
+	//
+
+	// find a pole
+
+		/*if (is_on_convexhull) {
+		pole_vector = (double *)calloc(3, sizeof(double));
+		avg_normal[X] /= neighbor_size;
+		avg_normal[Y] /= neighbor_size;
+		avg_normal[Z] /= neighbor_size;
+		for (i = 0; i < 3; i++) {
+		pole_vector[i] = avg_normal[i];
+		}
+		if (pole_voronoi_vertex) {
+		pole_vector = (double *)calloc(3, sizeof(double));
+		pole_voronoi_vertex->ispole = true;
+		ADD(vertices, pole_voronoi_vertex);
+		for (i = 0; i < 3; i++) {
+		pole_vector[i] = pole_voronoi_vertex->v[i];
+		}
+		}
+		vvl = MakeNullVoronoiVertexList();
+		vvl->p = (void *)vertex;
+		ADD(site->vvlist, vvl);
+		}*/
+/*
+	double max_dist = 0;
+	double avg_normal[3] = { 0, };
+	double *pole_vector;
+	double antipole_vector[3] = { 0, };
+	int neighbor_size = 0;
+	tVertex pole_voronoi_vertex = NULL;
+	tVertex temp_voronoi_vertex = NULL;
+	if (neighbor->upperdelaunay){
+		is_on_convexhull = TRUE;
 	}
+	else {
+		voronoi_vertex = MakeNullVoronoiVertex();
+		voronoi_vertex = neighbor->center;
+
+		if (neighbor->toporient) {
+			neighbor_size++;
+			avg_normal[X] += neighbor->normal[X];
+			avg_normal[Y] += neighbor->normal[Y];
+			avg_normal[Z] += neighbor->normal[Z];
+		}
+
+		double temp_dist = pointDist(vertex, voronoi_vertex);
+
+		if (temp_dist > max_dist) {
+			pole_voronoi_vertex = voronoi_vertex;
+			pole_voronoi_vertex->ispole = true;
+			max_dist = temp_dist;
+		}
+	}
+
+	}*/ //FOREACHneighbor_
+	//	if (is_on_convexhull) {
+	//		pole_vector = (double *)calloc(3, sizeof(double));
+	//		avg_normal[X] /= neighbor_size;
+	//		avg_normal[Y] /= neighbor_size;
+	//		avg_normal[Z] /= neighbor_size;
+	//		for (i = 0; i < 3; i++) {
+	//			pole_vector[i] = avg_normal[i];
+	//		}
+	//	}
+	//if (pole_voronoi_vertex) {
+	//	pole_vector = (double *)calloc(3, sizeof(double));
+	//	pole_voronoi_vertex->ispole = true;
+	//	ADD(vertices, pole_voronoi_vertex);
+	//	for (i = 0; i < 3; i++) {
+	//		pole_vector[i] = pole_voronoi_vertex->v[i];
+	//	}
+	//}
+
+	//// fine a antipole
+	//if (pole_vector) {
+	//	/*temp_voronoi_vertex = voronoi_vertices;
+	//	do {
+	//	if (!(temp_voronoi_vertex->ispole))
+	//	temp_dist = innerProduct(vertex->, pole, voronoi_vertex);
+	//	if (temp_norm > vector_norm) {
+	//	antipole_voronoi_vertex = voronoi_vertex;
+	//	vector_norm = temp_norm;
+	//	}
+	//	site_voronoi_vertices = site_voronoi_vertices->next;
+	//	} while (temp_voronoi_vertex != voronoi_vertices);
+	//	antipole_voronoi_vertex->ispole = TRUE;
+	//	ADD(vertices, antipole_voronoi_vertex);*/
+	//}
+
+				//FOREACHneighbor_(site) {	// assign 'neighbor' to each neighbor in vertices->neighbors
+				//	neighbor = (facetT*)site->neighbors;
+				//	facet_normal[X] += neighbor->normal[X];
+				//	facet_normal[Y] += neighbor->normal[Y];
+				//	facet_normal[Z] += neighbor->normal[Z];
+				//	vid++;
+				////}
+				//facet_normal[X] /= vid;
+				//facet_normal[Y] /= vid;
+				//facet_normal[Z] /= vid;
 	
-		
-		//not used
+	Delaunay();
+
+	//not used
 	free(pt);
 	free(all_v);
 	pt = NULL;
@@ -346,6 +624,3 @@ void	Crust( void )
 
 
 }
-
-
-

@@ -12,5 +12,5 @@ extern bool check;
 
 
 /*-------------------------------------------------------------------*/
-void	Crust( void );
+void	Delaunay(void);
 
