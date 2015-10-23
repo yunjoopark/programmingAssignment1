@@ -55,20 +55,6 @@ tList MakeNullVoronoiVertexList(void) {
 	return vvl;
 }
 
-int isOnConvexHull(tVertex vertex, tEdge edges) {
-	tEdge ptr_e;
-
-	ptr_e = edges;
-	do {
-		if (ptr_e->endpts[0] == vertex || ptr_e->endpts[1] == vertex) {
-			return TRUE;
-		}
-		ptr_e = ptr_e->next;
-	} while (ptr_e != edges);
-
-	return False;
-}
-
 /*
 	get angle between two vertex
 */
