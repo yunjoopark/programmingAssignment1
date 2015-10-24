@@ -125,7 +125,6 @@ void findPoleAntiPole(int vsize) {
 			continue;
 		}
 		temp_voronoi_vertexT = (vertexT*)site_voronoi_vertices->p;
-		//site_voronoi_vertices = site_voronoi_vertices->next;
 		if (temp_voronoi_vertexT) {	// lies on the CH: compute the average of the outer nomals of the adjacents.
 			pole_vector = (double *)calloc(3, sizeof(double));
 			FOREACHneighbor_(temp_voronoi_vertexT) {
@@ -174,7 +173,6 @@ void findPoleAntiPole(int vsize) {
 		// find a antipole
 
 		site_voronoi_vertices = site->vvlist;
-		site_voronoi_vertices = site_voronoi_vertices->next;
 		// assert(pole_vector != NULL);
 
 		if (pole_voronoi_vertex != NULL) {
