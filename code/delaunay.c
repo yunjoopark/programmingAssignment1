@@ -87,7 +87,7 @@ void	Delaunay( void )
 
 	qh_init_A(stdin, stdout, stderr, 0, NULL);
 
-	qh DELAUNAY= True;     /* 'd'   */
+	//qh DELAUNAY= True;     /* 'd'   */
 	//qh SCALElast= True;    /* 'Qbb' */
 	//qh KEEPcoplanar= True; /* 'Qc', to keep coplanars in 'p' */
 
@@ -111,11 +111,12 @@ void	Delaunay( void )
 			//get the id of the vertex
 			tetra->vertex[vid++] = all_v[qh_pointid(vertex->point)];
 		}
+
 		temp_face.vertex[0] = tetra->vertex[0];
 		temp_face.vertex[1] = tetra->vertex[1];
 		temp_face.vertex[2] = tetra->vertex[2];
 		
-		if (facet->normal[3] < 0.0 && Volumei(&temp_face, tetra->vertex[3])) {
+		if ((facet->normal[3] < 0.0) && Volumei(&temp_face, tetra->vertex[3])) {
 			
 			if (!(tetra->vertex[0]->ispole) && !(tetra->vertex[1]->ispole) && !(tetra->vertex[2]->ispole)) {
 				MakeFace(tetra->vertex[0], tetra->vertex[1], tetra->vertex[2], NULL);
