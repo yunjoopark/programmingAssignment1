@@ -12,7 +12,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define MAX_DIST 10000
+#define MAX_DIST 50000
 
 /*-------------------------------------------------------------------*/
 //defined in shape.h/.c
@@ -115,16 +115,23 @@ void findPoleAntiPole(int vsize) {
 	double max_dist = 0;
 	int i;
 	int neighbor_size = 0;
+	tVertex temp_vertices;
+	tVertex temp_vertex;
+
+	temp_vertices = vertices;
+	temp_vertex = vertices;
 
 	site = vertices;
 	// for all vertices
 	do {
 		site_voronoi_vertices = site->vvlist;
 		if (!site_voronoi_vertices)	{
+			temp_vertex = temp_vertex->next;
 			site = site->next;
 			continue;
 		}
 		temp_voronoi_vertexT = (vertexT*)site_voronoi_vertices->p;
+		// site_voronoi_vertices = site_voronoi_vertices->next;
 		if (temp_voronoi_vertexT) {	// lies on the CH: compute the average of the outer nomals of the adjacents.
 			pole_vector = (double *)calloc(3, sizeof(double));
 			FOREACHneighbor_(temp_voronoi_vertexT) {
@@ -134,7 +141,7 @@ void findPoleAntiPole(int vsize) {
 				avg_normal[Z] += neighbor->normal[Z];
 			}
 			for (i = 0; i < 3; i++) {
-				avg_normal[i] /= neighbor_size;
+				// avg_normal[i] /= neighbor_size;
 				pole_vector[i] = avg_normal[i];
 				pole_voronoi_vertex = MakeTempVertex(pole_vector);
 			}
@@ -173,8 +180,9 @@ void findPoleAntiPole(int vsize) {
 		// find a antipole
 
 		site_voronoi_vertices = site->vvlist;
+		//site_voronoi_vertices = site_voronoi_vertices->next;
 		// assert(pole_vector != NULL);
-
+		
 		if (pole_voronoi_vertex != NULL) {
 			do {
 				temp_voronoi_vertex = (tVertex)(site_voronoi_vertices->p);
@@ -187,6 +195,7 @@ void findPoleAntiPole(int vsize) {
 				site_voronoi_vertices = site_voronoi_vertices->next;
 			} while (site_voronoi_vertices != site->vvlist);
 		}
+		
 		if (antipole_voronoi_vertex){
 			if (max_dist > MAX_DIST) {
 				antipole_voronoi_vertex = NULL;
@@ -197,6 +206,7 @@ void findPoleAntiPole(int vsize) {
 				ADD(vertices, antipole_voronoi_vertex);
 			}
 		}
+		
 		neighbor_size = 0;
 		max_dist = 0;
 		avg_normal[0] = 0;
@@ -205,10 +215,10 @@ void findPoleAntiPole(int vsize) {
 		pole_vector = NULL;
 		pole_voronoi_vertex = NULL;
 		antipole_voronoi_vertex = NULL;
-		site = site->next;
-		//}
-	} while (site != vertices);
 
+		temp_vertex = temp_vertex->next;
+		site = site->next;
+	} while (temp_vertex != temp_vertices);
 }
 
 /*-------------------------------------------------------------------*/
@@ -228,7 +238,7 @@ void	Crust(void)
 
 	//	Qhull options
 	//	Qz   - add point-at-infinity to Voronoi diagram
-	static char * options = (char *)"voronoi v QJ Pp";
+	static char * options = (char *)"qhull v QJ Pp";
 	int curlong, totlong;
 	coordT * pt = NULL;
 	facetT *facet = NULL;
