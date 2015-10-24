@@ -249,7 +249,7 @@ void	Crust(void)
 	int vvlnum = 0;
 	tList vvl;
 
-	prinft("crust\n");
+	printf("crust\n");
 
 	//count number of points
 	ptr_v = vertices;

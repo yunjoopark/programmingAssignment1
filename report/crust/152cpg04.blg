@@ -1,0 +1,14 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: 152cpg04.aux
+The style file: plain.bst
+Database file #1: 152cpg04.bib
+Warning--entry type for "crust-algorithm" isn't style-file defined
+--line 10 of file 152cpg04.bib
+Warning--entry type for "qhull-library" isn't style-file defined
+--line 22 of file 152cpg04.bib
+I was expecting a `,' or a `}'---line 25 of file 152cpg04.bib
+ :  
+ :  url = {http://www.qhull.org/}
+(Error may have been on previous line)
+I'm skipping whatever remains of this entry
+Warning--empty booktitle in crust-algorithm-nina
+(There was 1 error message)

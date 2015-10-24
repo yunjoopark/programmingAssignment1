@@ -1,0 +1,17 @@
+\begin{thebibliography}{1}
+
+\bibitem{crust-algorithm-nina}
+Nina Amenta.
+\newblock The crust algorithm for 3d surface reconstruction.
+\newblock 1999.
+
+\bibitem{crust-algorithm}
+MIT~Geometry center.
+\newblock The crust algorithm for 3d surface reconstruction from scattered
+  points.
+
+\bibitem{qhull-library}
+UIUC~Geometry Center.
+\newblock Qhull.
+
+\end{thebibliography}
