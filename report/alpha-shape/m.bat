@@ -1,0 +1,4 @@
+pdflatex  152cpg04-programmingAssignment2
+bibtex 152cpg04-programmingAssignment2
+pdflatex  152cpg04-programmingAssignment2
+pdflatex  152cpg04-programmingAssignment2
